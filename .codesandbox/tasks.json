@@ -4,10 +4,14 @@
 
   // These tasks can be run from CodeSandbox. Running one will open a log in the app.
   "tasks": {
-    "ls": {
-      "name": "ls",
-      "command": "ls",
+    "gccGestor": {
+      "name": "Compilar Gestor",
+      "command": "gcc -o Gestor gestor.c -lpthread",
       "runAtStart": true
+    },
+    "runGestor": {
+      "name": "Correr Gestor",
+      "command": "./Gestor -n 10 -m 10 -r 1 -t 10 -p 10"
     }
   }
 }
