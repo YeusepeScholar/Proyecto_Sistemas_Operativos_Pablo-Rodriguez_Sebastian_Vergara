@@ -6,11 +6,11 @@
   "tasks": {
     "gcc": {
       "name": "Compilar",
-      "command": "gcc -o Gestor Gestor.c -lpthread",
+      "command": "gcc -o Gestor gestor.c -lpthread",
       "runAtStart": true
     },
-    "./Gestor -n 10 -m 10 -r 1 -t 10 -p 10": {
-      "name": "./Gestor -n 10 -m 10 -r 1 -t 10 -p 10",
+    "run": {
+      "name": "Correr",
       "command": "./Gestor -n 10 -m 10 -r 1 -t 10 -p 10"
     }
   }
