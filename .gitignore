@@ -1,2 +1,4 @@
 node_modules
 Gestor
+CMakeLists.txt
+cmake-build-debug
