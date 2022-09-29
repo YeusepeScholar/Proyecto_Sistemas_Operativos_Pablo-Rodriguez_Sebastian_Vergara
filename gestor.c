@@ -64,6 +64,11 @@ void *atenderSolicitudes(void *arg){
 void *cargarRelaciones(void *arg){
     printf("Cargando relaciones\n");
     struct fileParser fp = extraerDatosArchivo(args.relaciones);
+    for(int i = 0; i < fp.num; i++) {
+        for (int j = 0; j < fp.num; j++) {
+            printf("%d ", fp.matriz[i][j]);
+        }
+    }
     return NULL;
 }
 

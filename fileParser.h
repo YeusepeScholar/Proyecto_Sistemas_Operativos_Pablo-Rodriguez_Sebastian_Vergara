@@ -37,7 +37,7 @@ struct fileParser extraerDatosArchivo(char *path){
     int i = 0;
     while ((read = getline(&line, &len, file)) != -1) {
         if (i == 0){
-            fileParser.num = atoi(line);
+            fileParser.num = 1;
             fileParser.relaciones = (int **) malloc(fileParser.num * sizeof(int *));
             for (int j = 0; j < fileParser.num; ++j) {
                 fileParser.relaciones[j] = (int *) malloc(fileParser.num * sizeof(int));
@@ -50,6 +50,7 @@ struct fileParser extraerDatosArchivo(char *path){
                 token = strtok(NULL, " ");
                 j++;
             }
+            fileParser.num++;
         }
         i++;
     }
