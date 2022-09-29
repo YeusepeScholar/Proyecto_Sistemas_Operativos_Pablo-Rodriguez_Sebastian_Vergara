@@ -9,8 +9,8 @@
       "command": "gcc -o Gestor gestor.c -lpthread",
       "runAtStart": true
     },
-    "run": {
-      "name": "Correr",
+    "runGestor": {
+      "name": "Correr Gestor",
       "command": "./Gestor -n 10 -m 10 -r 1 -t 10 -p 10"
     }
   }
