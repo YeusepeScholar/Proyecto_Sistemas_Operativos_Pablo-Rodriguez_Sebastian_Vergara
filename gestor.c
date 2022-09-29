@@ -25,7 +25,7 @@
 // determinado, sus seguidores conectados deben recibirlo inmediatamente.
 
 // Como compilar: gcc -o Gestor Gestor.c -lpthread
-// Como ejecutar: ./Gestor -n 10 -m 10 -r 1 -t 10 -p 10
+// Como ejecutar: ./Gestor -n 10 -m 10 -r relaciones.txt -t 10 -p 10
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,11 +62,12 @@ void *atenderSolicitudes(void *arg){
 
 /// @brief Funcion para cargar las relaciones de un archivo
 void *cargarRelaciones(void *arg){
-    printf("Cargando relaciones\n");
+
     struct fileParser fp = extraerDatosArchivo(args.relaciones);
+    printf("Cargando relaciones\n");
     for(int i = 0; i < fp.num; i++) {
         for (int j = 0; j < fp.num; j++) {
-            printf("%d ", fp.matriz[i][j]);
+            printf("%d ", fp.relaciones[i][j]);
         }
     }
     return NULL;
@@ -82,6 +83,7 @@ int main(int argc, char *argv[]) {
     // Crear el primer pipe nominal con mkfifo
     mkfifo("pipeNominal", 0666);
 
+    cargarRelaciones(NULL);
     // Crear el hilo para atender solicitudes
     pthread_t hiloSolicitudes;
     pthread_create(&hiloSolicitudes, NULL, atenderSolicitudes, NULL);
