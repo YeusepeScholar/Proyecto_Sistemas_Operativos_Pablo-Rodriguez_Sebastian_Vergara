@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "extractorConsola.h" // Funciones para extraer datos de la consola
+#include "fileParser.h" // Funciones para extraer datos de un archivo
 
 // Registro: Al momento de conectarse un usuario, el proceso Cliente enviará el identificador
 // del usuario al Gestor usando el pipe. El Gestor le devolverá al Cliente el resultado de la
@@ -56,6 +57,13 @@ void *imprimirEstadisticas(void *arg){
 /// @brief Funcion para atención de solicitudes de los procesos Cliente
 void *atenderSolicitudes(void *arg){
     printf("Hola mundo");
+    return NULL;
+}
+
+/// @brief Funcion para cargar las relaciones de un archivo
+void *cargarRelaciones(void *arg){
+    printf("Cargando relaciones\n");
+    struct fileParser fp = extraerDatosArchivo(args.relaciones);
     return NULL;
 }
 
