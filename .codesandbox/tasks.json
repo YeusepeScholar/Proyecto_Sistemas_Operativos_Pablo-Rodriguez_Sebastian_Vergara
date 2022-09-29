@@ -8,6 +8,10 @@
       "name": "Compilar",
       "command": "gcc -o Gestor Gestor.c -lpthread",
       "runAtStart": true
+    },
+    "./Gestor -n 10 -m 10 -r 1 -t 10 -p 10": {
+      "name": "./Gestor -n 10 -m 10 -r 1 -t 10 -p 10",
+      "command": "./Gestor -n 10 -m 10 -r 1 -t 10 -p 10"
     }
   }
 }
