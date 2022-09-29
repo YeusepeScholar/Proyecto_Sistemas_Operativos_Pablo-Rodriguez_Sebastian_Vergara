@@ -34,6 +34,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <fcntl.h>
 #include "extractorConsola.h" // Funciones para extraer datos de la consola
 #include "fileParser.h" // Funciones para extraer datos de un archivo
 
@@ -73,6 +74,13 @@ void *cargarRelaciones(void *arg){
     return NULL;
 }
 
+/// @brief Funcion para mandar informacion por el pipe
+/// @param pipe Pipe por el cual se va a mandar la informacion
+/// @param mensaje Mensaje que se va a mandar
+void mandarMensaje(int pipe, char *mensaje){
+    write(pipe, mensaje, strlen(mensaje));
+}
+
 /// @brief Funcion principal del proceso Gestor
 int main(int argc, char *argv[]) {
     // Inicializar el gestor
@@ -80,10 +88,15 @@ int main(int argc, char *argv[]) {
     // Extraer los datos de la consola¿
     args = extraerDatosConsola(argc, argv);
 
-    // Crear el primer pipe nominal con mkfifo
-    mkfifo("pipeNominal", 0666);
+    // Crear el primer pipe nominal de nombre args.pipeNom y abrirlo en modo escritura
+    mkfifo(args.pipeNom, 0666);
+    int pipeNom = open(args.pipeNom, O_WRONLY);
+
+    // Escribir en el pipe una prueba
+    mandarMensaje(pipeNom, "Hola mundo");
 
     cargarRelaciones(NULL);
+
     // Crear el hilo para atender solicitudes
     pthread_t hiloSolicitudes;
     pthread_create(&hiloSolicitudes, NULL, atenderSolicitudes, NULL);
