@@ -24,8 +24,8 @@
 // (a quienes ellos siguen), es decir, en este modo, si un usuario A envía un tweet en un momento
 // determinado, sus seguidores conectados deben recibirlo inmediatamente.
 
-// Como compilar: gcc -o Gestor Gestor.c -lpthread
-// Como ejecutar: ./Gestor -n 10 -m 10 -r relaciones.txt -t 10 -p 10
+// Como compilar: gcc -o Gestor gestor.c -lpthread
+// Como ejecutar: ./Gestor -n 10 -m 10 -r relaciones.txt -t 10 -p pipeNom
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,8 +35,10 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include "extractorConsola.h" // Funciones para extraer datos de la consola
 #include "fileParser.h" // Funciones para extraer datos de un archivo
+#include "cliente.h" // Estructura para almacenar los datos de un cliente
 
 // Registro: Al momento de conectarse un usuario, el proceso Cliente enviará el identificador
 // del usuario al Gestor usando el pipe. El Gestor le devolverá al Cliente el resultado de la
@@ -47,7 +49,8 @@
 // entre el Gestor y el Cliente (Figura 3, derecha pipes rojos), puede aprovechar la operación
 // de registro para crear e intercambiar la información para este nuevo pipe.
 
-struct argumentos args; // Estructura para almacenar los argumentos de la consola
+struct argumentos args; ///< Estructura para almacenar los argumentos de la consola
+struct cliente *clientes; ///< Estructura para almacenar los datos de los clientes
 
 /// @brief Funcion para imprimir estadisticas
 void *imprimirEstadisticas(void *arg){
@@ -57,8 +60,31 @@ void *imprimirEstadisticas(void *arg){
 
 /// @brief Funcion para atención de solicitudes de los procesos Cliente
 void *atenderSolicitudes(void *arg){
-    printf("Hola mundo");
-    return NULL;
+    printf("Atendiendo solicitudes\n");
+    // Abrir el pipe como lectura
+    int fd = open(args.pipeNom, O_RDONLY); // Abrir el pipe como lectura
+    // testear si se abrio correctamente
+    if (fd == -1){
+        perror("Error al abrir el pipe");
+        exit(EXIT_FAILURE);
+    }
+    // Imprimir el pipe
+    printf("Pipe: %s", args.pipeNom);
+    // Leer el pipe
+    while (true) {
+
+        char buffer[100];
+        int n = read(fd, buffer, 100);
+        if (n == -1) {
+            perror("Error al leer el pipe");
+            exit(EXIT_FAILURE);
+        }
+        printf("Mensaje: %s \t", buffer);
+        if(n == 0){
+            printf("El pipe se cerro");
+            break;
+        }
+    }
 }
 
 /// @brief Funcion para cargar las relaciones de un archivo
@@ -74,26 +100,17 @@ void *cargarRelaciones(void *arg){
     return NULL;
 }
 
-/// @brief Funcion para mandar informacion por el pipe
-/// @param pipe Pipe por el cual se va a mandar la informacion
-/// @param mensaje Mensaje que se va a mandar
-void mandarMensaje(int pipe, char *mensaje){
-    write(pipe, mensaje, strlen(mensaje));
-}
-
 /// @brief Funcion principal del proceso Gestor
 int main(int argc, char *argv[]) {
     // Inicializar el gestor
 
     // Extraer los datos de la consola¿
     args = extraerDatosConsola(argc, argv);
-
-    // Crear el primer pipe nominal de nombre args.pipeNom y abrirlo en modo escritura
+    // Borrar el contenido basura que pueda haber en el pipe
+    remove(args.pipeNom);
+    // Crear el primer pipe nominal de nombre args.pipeNom y abrirlo en modo escritura. Se usara para asignar un identificador y un pipe a cada usuario que se conecte al sistema.
+    unlink(args.pipeNom); // Eliminar el pipe si existe
     mkfifo(args.pipeNom, 0666);
-    int pipeNom = open(args.pipeNom, O_WRONLY);
-
-    // Escribir en el pipe una prueba
-    mandarMensaje(pipeNom, "Hola mundo");
 
     cargarRelaciones(NULL);
 
