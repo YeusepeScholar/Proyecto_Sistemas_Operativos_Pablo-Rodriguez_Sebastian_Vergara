@@ -1,6 +1,7 @@
 // Proyecto entreaga 1: Sistemas Operativos
 // Sebastian Vergara
-// TODO: HACER QUE EL CLIENTE SE CREEE A SI MISMO, QUE SE MANDE SU PROPIO APUNTADOR POR EL PIPE, Y QUE EL GESTOR LO GUARDE EN UNA LISTA. QUE EL CLIENTE TENGA DOS PIPES, EL DE SUSCRIPCIONES Y EL DE TWITTWEAR.
+// TODO: Inicialización del proceso Gestor con los parámetros correspondientes.
+//  El gestor crea las estructuras de datos necesarias y muestra los usuarios registrados.
 
 // PROGRAMA DEL PROCESO GESTOR
 
@@ -86,49 +87,6 @@ void *atenderSolicitudes(void *arg){
             // Extraer el id
             int id = atoi(&buffer[2]);
             printf("ID: %d", id);
-            // Buscar el id en la lista de clientes
-            for (int i = 0; i < sizeof(clientes); i++) {
-                if (clientes[i].id == id) {
-                    // Si el id esta en la lista, enviar el mensaje al cliente
-                    printf("Enviando mensaje al cliente %d", id);
-                    // Abrir el pipe del cliente como escritura
-                    int fdCliente = open(clientes[i].pipe, O_WRONLY);
-                    // testear si se abrio correctamente
-                    if (fdCliente == -1){
-                        perror("Error al abrir el pipe del cliente");
-                        exit(EXIT_FAILURE);
-                    }
-                    // Escribir el mensaje en el pipe del cliente
-                    int n = write(fdCliente, buffer, 100);
-                    if (n == -1) {
-                        perror("Error al escribir en el pipe del cliente");
-                        exit(EXIT_FAILURE);
-                    }
-                    // Cerrar el pipe del cliente
-                    close(fdCliente);
-                    break;
-                } else {
-                    // Si el id no esta en la lista, crear el cliente
-                    printf("Creando cliente %d", id);
-                    // Añadir el cliente a la lista de clientes
-                    struct cliente cliente;
-                    cliente.id = id;
-                    cliente.pipe = malloc(sizeof(char) * 100);
-                    sprintf(cliente.pipe, "pipeCliente%d", id);
-                    // Crear el pipe del cliente
-                    if (mkfifo(cliente.pipe, 0666) == -1) {
-                        perror("Error al crear el pipe del cliente");
-                        exit(EXIT_FAILURE);
-                    }
-                    // Abrir el pipe del cliente como lectura
-                    int fdCliente = open(cliente.pipe, O_RDONLY);
-                    // testear si se abrio correctamente
-                    if (fdCliente == -1){
-                        perror("Error al abrir el pipe del cliente");
-                        exit(EXIT_FAILURE);
-                    }
-                }
-            }
         }
     }
 }
