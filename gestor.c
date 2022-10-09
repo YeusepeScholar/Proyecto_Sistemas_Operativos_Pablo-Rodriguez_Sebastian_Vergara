@@ -51,10 +51,62 @@
 
 struct argumentos args; ///< Estructura para almacenar los argumentos de la consola
 struct cliente *clientes; ///< Estructura para almacenar los datos de los clientes
+int pipeNom; ///< Pipe nominal para lo que le entra al gestor
 
+// cada time segundos el Gestor debe imprimir la siguiente información: Número de
+// usuarios conectados, número total de tweets enviados y recibidos.
+int usuariosConectados = 0;
+int tweetsEnviados = 0;
+int tweetsRecibidos = 0;
 /// @brief Funcion para imprimir estadisticas
 void *imprimirEstadisticas(void *arg){
+    sleep(args.time);
     printf("Imprimiendo estadisticas\n");
+    printf("Usuarios conectados: %d\n", usuariosConectados);
+    printf("Tweets enviados: %d\n", tweetsEnviados);
+    printf("Tweets recibidos: %d\n", tweetsRecibidos);
+    return NULL;
+}
+
+
+
+/// @brief Funcion para cargar las relaciones de un archivo
+void *cargarRelaciones(void *arg){
+    printf("Cargando relaciones\n");
+    FILE *fp;
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    fp = fopen(args.relaciones, "r");
+    if (fp == NULL){
+        printf("Error al abrir el archivo de relaciones %s \n", args.relaciones);
+    }
+    int i = 0;
+    while ((read = getline(&line, &len, fp)) != -1) {
+        // Extraer datos de la linea, el formato es: usuario1 usuario2 usuario3 ...
+        // En la linea se encuentran los usuarios a los que sigue el usuario1, representado por las columnas
+        // Si lo sigue es 1, si no lo sigue es 0
+        // Ejemplo: 1 0 1 0 1 0 1 0 1 0
+        // El usuario1 sigue al usuario2, usuario4, usuario6, usuario8 y usuario10
+        char *token;
+        token = strtok(line, " ");
+        int j = 0;
+        while(token != NULL){
+            if (atoi(token) == 1){
+                clientes[i].suscripciones[j] = 1;
+                clientes[j].numSuscripciones++;
+            }
+            else{
+                clientes[i].suscripciones[j] = 0;
+            }
+            token = strtok(NULL, " ");
+
+            j++;
+        }
+        i++;
+    }
+
     return NULL;
 }
 
@@ -62,47 +114,42 @@ void *imprimirEstadisticas(void *arg){
 void *atenderSolicitudes(void *arg){
     printf("Atendiendo solicitudes\n");
     // Abrir el pipe como lectura
-    int fd = open(args.pipeNom, O_RDONLY); // Abrir el pipe como lectura
-    // testear si se abrio correctamente
-    if (fd == -1){
+    pipeNom = open(args.pipeNom, O_RDONLY);
+    if (pipeNom == -1) {
         perror("Error al abrir el pipe");
         exit(EXIT_FAILURE);
     }
     // Imprimir el pipe
     printf("Pipe: %s\n", args.pipeNom);
     // Leer el pipe
+
     while (true) {
         char buffer[100];
-        int n = read(fd, buffer, 100);
+        int n = read(pipeNom, buffer, 100);
         if (n == -1) {
             perror("Error al leer el pipe");
             exit(EXIT_FAILURE);
-        }
-        if(n == 0){
-            printf("El pipe se cerro");
-            break;
         }
         // Si el mensaje tiene id (Le entra con formato ID%d)
         if (buffer[0] == 'I' && buffer[1] == 'D') {
             // Extraer el id
             int id = atoi(&buffer[2]);
-            printf("ID: %d", id);
+            // Si el id esta en el rango
+            if (id >= 0 && id < args.num) {
+                // Si el id no esta conectado
+                if (clientes[id].conectado == false) {
+                    // Conectar el id
+                    clientes[id].conectado = true;
+                    // Incrementar el numero de usuarios conectados
+                    usuariosConectados++;
+                    printf("Usuario %d conectado\n", id);
+                }
+            }
         }
+        // Borra el buffer
     }
 }
 
-/// @brief Funcion para cargar las relaciones de un archivo
-void *cargarRelaciones(void *arg){
-
-    struct fileParser fp = extraerDatosArchivo(args.relaciones);
-    printf("Cargando relaciones\n");
-    for(int i = 0; i < fp.num; i++) {
-        for (int j = 0; j < fp.num; j++) {
-            printf("%d ", fp.relaciones[i][j]);
-        }
-    }
-    return NULL;
-}
 
 /// @brief Funcion principal del proceso Gestor
 int main(int argc, char *argv[]) {
@@ -110,15 +157,38 @@ int main(int argc, char *argv[]) {
 
     // Extraer los datos de la consola¿
     args = extraerDatosConsola(argc, argv);
+
+    // Todos los clientes tienen id -1
+    clientes = malloc(sizeof(struct cliente) * args.num);
+    for (int i = 0; i < args.num; ++i) {
+        clientes[i].id = -1;
+        clientes[i].conectado = false;
+        clientes[i].suscripciones = malloc(sizeof(int) * args.num);
+    }
+
     // Borrar el contenido basura que pueda haber en el pipe
     remove(args.pipeNom);
+    for (int i = 0; i < args.num; ++i) {
+        char pipeLectura[100];
+        char pipeEscritura[100];
+        sprintf(pipeLectura, "pipeLectura%d", i);
+        sprintf(pipeEscritura, "pipeEscritura%d", i);
+        remove(pipeLectura);
+        remove(pipeEscritura);
+        unlink(pipeLectura);
+        unlink(pipeEscritura);
+        clientes[i].pipeLectura = pipeLectura;
+        clientes[i].pipeEscritura = pipeEscritura;
+    }
+
     // Crear el primer pipe nominal de nombre args.pipeNom y abrirlo en modo escritura. Se usara para asignar un identificador y un pipe a cada usuario que se conecte al sistema.
     unlink(args.pipeNom); // Eliminar el pipe si existe
     mkfifo(args.pipeNom, 0666);
 
+
     cargarRelaciones(NULL);
 
-    // Crear el hilo para atender solicitudes
+    //Crear el hilo para atender solicitudes
     pthread_t hiloSolicitudes;
     pthread_create(&hiloSolicitudes, NULL, atenderSolicitudes, NULL);
 

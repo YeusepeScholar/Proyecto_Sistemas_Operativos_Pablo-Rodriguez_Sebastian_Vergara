@@ -4,13 +4,17 @@
 
 #ifndef PROYECTO_SISTEMAS_OPERATIVOS_PABLO_RODRIGUEZ_SEBASTIAN_VERGARA_CLIENTE_H
 #define PROYECTO_SISTEMAS_OPERATIVOS_PABLO_RODRIGUEZ_SEBASTIAN_VERGARA_CLIENTE_H
-#define MAX_SUBSCRIPCIONES 100
+
+#include <stdbool.h>
+
 // Tipo de dato para el identificador de un cliente
 struct cliente {
     int id; ///< Identificador del cliente
-    int pipe; ///< Pipe por el cual se va a comunicar con el cliente
+    char* pipeLectura, *pipeEscritura; ///< Pipe por el cual se va a comunicar con el cliente
+    bool conectado; ///< Indica si el cliente esta conectado
     // Arreglo de clientes a los que esta suscrito
-    struct cliente *suscripciones[MAX_SUBSCRIPCIONES];
-    void *tweets;
+    bool *suscripciones;
+    char **tweets;
+    int numSuscripciones;
 };
 #endif //PROYECTO_SISTEMAS_OPERATIVOS_PABLO_RODRIGUEZ_SEBASTIAN_VERGARA_CLIENTE_H
