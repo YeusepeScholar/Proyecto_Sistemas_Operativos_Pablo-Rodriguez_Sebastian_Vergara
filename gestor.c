@@ -60,12 +60,14 @@ int tweetsEnviados = 0;
 int tweetsRecibidos = 0;
 /// @brief Funcion para imprimir estadisticas
 void *imprimirEstadisticas(void *arg){
-    sleep(args.time);
-    printf("Imprimiendo estadisticas\n");
-    printf("Usuarios conectados: %d\n", usuariosConectados);
-    printf("Tweets enviados: %d\n", tweetsEnviados);
-    printf("Tweets recibidos: %d\n", tweetsRecibidos);
-    return NULL;
+    while(true){
+        sleep(args.time);
+        printf("Imprimiendo estadisticas\n");
+        printf("Usuarios conectados: %d\n", usuariosConectados);
+        printf("Tweets enviados: %d\n", tweetsEnviados);
+        printf("Tweets recibidos: %d\n", tweetsRecibidos);
+        return NULL;
+    }
 }
 
 
