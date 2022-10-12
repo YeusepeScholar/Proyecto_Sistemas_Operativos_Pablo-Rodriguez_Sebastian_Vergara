@@ -1,7 +1,5 @@
 // Proyecto entreaga 1: Sistemas Operativos
-// Sebastian Vergara
-// TODO: Inicialización del proceso Gestor con los parámetros correspondientes.
-//  El gestor crea las estructuras de datos necesarias y muestra los usuarios registrados.
+// Sebastian Vergara y Pablo Rodriguez
 
 // PROGRAMA DEL PROCESO GESTOR
 
@@ -55,18 +53,17 @@ int pipeNom; ///< Pipe nominal para lo que le entra al gestor
 
 // cada time segundos el Gestor debe imprimir la siguiente información: Número de
 // usuarios conectados, número total de tweets enviados y recibidos.
-int usuariosConectados = 0;
-int tweetsEnviados = 0;
-int tweetsRecibidos = 0;
+int usuariosConectados = 0; ///< Numero de usuarios conectados
+int tweetsEnviados = 0; ///< Numero de tweets enviados
+int tweetsRecibidos = 0; ///< Numero de tweets recibidos
 /// @brief Funcion para imprimir estadisticas
 void *imprimirEstadisticas(void *arg){
-    while(true){
-        sleep(args.time);
-        printf("Imprimiendo estadisticas\n");
-        printf("Usuarios conectados: %d\n", usuariosConectados);
-        printf("Tweets enviados: %d\n", tweetsEnviados);
-        printf("Tweets recibidos: %d\n", tweetsRecibidos);
-        return NULL;
+    while(true){ // Imprimir estadisticas cada time segundos
+        sleep(args.time); // Esperar time segundos
+        printf("Imprimiendo estadisticas\n"); // Imprimir estadisticas
+        printf("Usuarios conectados: %d\n", usuariosConectados); // Imprimir usuarios conectados
+        printf("Tweets enviados: %d\n", tweetsEnviados); // Imprimir tweets enviados
+        printf("Tweets recibidos: %d\n", tweetsRecibidos); // Imprimir tweets recibidos
     }
 }
 
@@ -74,66 +71,70 @@ void *imprimirEstadisticas(void *arg){
 
 /// @brief Funcion para cargar las relaciones de un archivo
 void *cargarRelaciones(void *arg){
+    // Cargar relaciones de un archivo
     printf("Cargando relaciones\n");
-    FILE *fp;
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read;
+    FILE *fp; ///< Archivo de relaciones
+    char *line = NULL; ///< Linea del archivo
+    size_t len = 0; ///< Tamaño de la linea
+    ssize_t read; ///< Tamaño de la linea leida
 
-    fp = fopen(args.relaciones, "r");
-    if (fp == NULL){
+    fp = fopen(args.relaciones, "r"); // Abrir archivo de relaciones
+    if (fp == NULL){ // Si no se pudo abrir el archivo
         printf("Error al abrir el archivo de relaciones %s \n", args.relaciones);
     }
-    int i = 0;
-    while ((read = getline(&line, &len, fp)) != -1) {
+    int i = 0; // Contador de lineas
+    while ((read = getline(&line, &len, fp)) != -1) { // Leer linea por linea
         // Extraer datos de la linea, el formato es: usuario1 usuario2 usuario3 ...
         // En la linea se encuentran los usuarios a los que sigue el usuario1, representado por las columnas
         // Si lo sigue es 1, si no lo sigue es 0
         // Ejemplo: 1 0 1 0 1 0 1 0 1 0
         // El usuario1 sigue al usuario2, usuario4, usuario6, usuario8 y usuario10
-        char *token;
-        token = strtok(line, " ");
-        int j = 0;
-        while(token != NULL){
-            if (atoi(token) == 1){
-                clientes[i].suscripciones[j] = 1;
-                clientes[j].numSuscripciones++;
+        char *token; ///< Token de la linea
+        token = strtok(line, " "); // Extraer el primer token
+        int j = 0; ///< Contador de columnas
+        while(token != NULL){ // Mientras haya tokens
+            if (atoi(token) == 1){ // Si el token es 1
+                clientes[i].suscripciones[j] = 1; // El usuario i sigue al usuario j
+                clientes[i].numSuscripciones++; // El usuario i tiene una suscripcion mas
             }
-            else{
-                clientes[i].suscripciones[j] = 0;
+            else{ // Si el token es 0
+                clientes[i].suscripciones[j] = 0; // El usuario i no sigue al usuario j
             }
-            token = strtok(NULL, " ");
+            token = strtok(NULL, " "); // Extraer el siguiente token
 
-            j++;
+            j++; // Incrementar contador de columnas
         }
-        i++;
+        i++; // Incrementar contador de lineas
     }
 
-    return NULL;
+    return NULL; // Retornar
 }
 
 /// @brief Funcion para atención de solicitudes de los procesos Cliente
-void *atenderSolicitudes(void *arg){
+void *atenderSolicitudes(void *arg){ // Atender solicitudes de los procesos Cliente
     printf("Atendiendo solicitudes\n");
+
     // Abrir el pipe como lectura
-    pipeNom = open(args.pipeNom, O_RDONLY);
-    if (pipeNom == -1) {
+    pipeNom = open(args.pipeNom, O_RDONLY); // Abrir el pipe como lectura
+    if (pipeNom == -1) { // Si no se pudo abrir el pipe
         perror("Error al abrir el pipe");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // Salir del programa
     }
+
     // Imprimir el pipe
     printf("Pipe: %s\n", args.pipeNom);
+
     // Leer el pipe
 
-    while (true) {
-        char buffer[100];
-        int n = read(pipeNom, buffer, 100);
-        if (n == -1) {
+    while (true) { // Mientras se pueda leer del pipe
+        char buffer[100]; ///< Buffer para almacenar lo que se lee del pipe
+        int n = read(pipeNom, buffer, 100); ///< Numero de bytes leidos
+        if (n == -1) { // Si no se pudo leer del pipe
             perror("Error al leer el pipe");
             exit(EXIT_FAILURE);
         }
         // Si el mensaje tiene id (Le entra con formato ID%d)
-        if (buffer[0] == 'I' && buffer[1] == 'D') {
+        if (buffer[0] == 'I' && buffer[1] == 'D') { // Si el mensaje tiene id (Le entra con formato ID%d)
             // Extraer el id
             int id = atoi(&buffer[2]);
             // Si el id esta en el rango
@@ -162,45 +163,44 @@ int main(int argc, char *argv[]) {
 
     // Todos los clientes tienen id -1
     clientes = malloc(sizeof(struct cliente) * args.num);
-    for (int i = 0; i < args.num; ++i) {
-        clientes[i].id = -1;
-        clientes[i].conectado = false;
-        clientes[i].suscripciones = malloc(sizeof(int) * args.num);
+    for (int i = 0; i < args.num; ++i) { // Para cada cliente
+        clientes[i].id = -1; // Inicializar el id en -1
+        clientes[i].conectado = false; // Inicializar conectado en false
+        clientes[i].suscripciones = malloc(sizeof(int) * args.num); // Inicializar suscripciones
     }
 
     // Borrar el contenido basura que pueda haber en el pipe
     remove(args.pipeNom);
-    for (int i = 0; i < args.num; ++i) {
-        char pipeLectura[100];
-        char pipeEscritura[100];
-        sprintf(pipeLectura, "pipeLectura%d", i);
-        sprintf(pipeEscritura, "pipeEscritura%d", i);
-        remove(pipeLectura);
-        remove(pipeEscritura);
-        unlink(pipeLectura);
-        unlink(pipeEscritura);
-        clientes[i].pipeLectura = pipeLectura;
-        clientes[i].pipeEscritura = pipeEscritura;
+    for (int i = 0; i < args.num; ++i) { // Para cada cliente
+        char pipeLectura[100]; ///< Pipe de lectura
+        char pipeEscritura[100]; ///< Pipe de escritura
+        sprintf(pipeLectura, "pipeLectura%d", i); // Crear el nombre del pipe de lectura
+        sprintf(pipeEscritura, "pipeEscritura%d", i); // Crear el nombre del pipe de escritura
+        remove(pipeLectura); // Borrar el contenido basura que pueda haber en el pipe de lectura
+        remove(pipeEscritura); // Borrar el contenido basura que pueda haber en el pipe de escritura
+        unlink(pipeLectura); // Borrar el pipe de lectura
+        unlink(pipeEscritura); // Borrar el pipe de escritura
+        clientes[i].pipeLectura = pipeLectura; // Guardar el nombre del pipe de lectura
+        clientes[i].pipeEscritura = pipeEscritura; // Guardar el nombre del pipe de escritura
     }
 
     // Crear el primer pipe nominal de nombre args.pipeNom y abrirlo en modo escritura. Se usara para asignar un identificador y un pipe a cada usuario que se conecte al sistema.
     unlink(args.pipeNom); // Eliminar el pipe si existe
-    mkfifo(args.pipeNom, 0666);
+    mkfifo(args.pipeNom, 0666); // Crear el pipe
 
-
-    cargarRelaciones(NULL);
+    cargarRelaciones(NULL); // Cargar las relaciones de los usuarios
 
     //Crear el hilo para atender solicitudes
-    pthread_t hiloSolicitudes;
-    pthread_create(&hiloSolicitudes, NULL, atenderSolicitudes, NULL);
+    pthread_t hiloSolicitudes; ///< Hilo para atender solicitudes
+    pthread_create(&hiloSolicitudes, NULL, atenderSolicitudes, NULL); // Crear el hilo para atender solicitudes
 
     // Crear el hilo para imprimir estadisticas
-    pthread_t hiloEstadisticas;
-    pthread_create(&hiloEstadisticas, NULL, imprimirEstadisticas, NULL);
+    pthread_t hiloEstadisticas; ///< Hilo para imprimir estadisticas
+    pthread_create(&hiloEstadisticas, NULL, imprimirEstadisticas, NULL); // Crear el hilo para imprimir estadisticas
 
     // Esperar a que los hilos terminen
-    pthread_join(hiloSolicitudes, NULL);
-    pthread_join(hiloEstadisticas, NULL);
+    pthread_join(hiloSolicitudes, NULL); // Esperar a que el hilo de atender solicitudes termine
+    pthread_join(hiloEstadisticas, NULL); // Esperar a que el hilo de imprimir estadisticas termine
 
     return 0;
 }
