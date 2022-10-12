@@ -20,19 +20,19 @@ struct fileParser{
 /// @return Estructura con los datos extraidos
 
 struct fileParser extraerDatosArchivo(char *path){
-    struct fileParser fileParser;
-    fileParser.num = 0;
-    fileParser.relaciones = NULL;
+    struct fileParser fileParser; ///< Estructura para almacenar los datos del archivo
+    fileParser.num = 0; ///< Inicializar el numero de usuarios
+    fileParser.relaciones = NULL; ///< Inicializar la matriz de relaciones
 
-    FILE *file = fopen(path, "r");
-    if (file == NULL){
+    FILE *file = fopen(path, "r"); ///< Archivo a leer
+    if (file == NULL){ // Si el archivo no existe
         printf("Error al abrir el archivo");
         return fileParser;
     }
 
-    fclose(file);
+    fclose(file); ///< Cerrar el archivo
 
-    return fileParser;
+    return fileParser; ///< Retornar la estructura
 }
 
 

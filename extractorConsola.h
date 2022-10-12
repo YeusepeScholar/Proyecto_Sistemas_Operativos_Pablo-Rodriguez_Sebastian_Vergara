@@ -48,32 +48,32 @@ struct argumentos {
 /// @return Estructura con los datos extraidos
 struct argumentos extraerDatosConsola(int argc, char *argv[])
 {
-    struct argumentos argumentos;
-    argumentos.id = 0;
-    argumentos.pipeNom = NULL;
-    argumentos.num = 0;
-    argumentos.relaciones = NULL;
-    argumentos.modo = ' ';
-    argumentos.time = 0;
+    struct argumentos argumentos; ///< Estructura con los datos extraidos
+    argumentos.id = 0; // Inicializar id en 0
+    argumentos.pipeNom = NULL; // Inicializar pipeNom en NULL
+    argumentos.num = 0; // Inicializar num en 0
+    argumentos.relaciones = NULL; // Inicializar relaciones en NULL
+    argumentos.modo = ' '; // Inicializar modo en ' '
+    argumentos.time = 0; // Inicializar time en 0
 
-    int i;
-    for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-i") == 0) {
-            argumentos.id = atoi(argv[i + 1]);
-        } else if (strcmp(argv[i], "-p") == 0) {
-            argumentos.pipeNom = argv[i + 1];
-        } else if (strcmp(argv[i], "-n") == 0) {
-            argumentos.num = atoi(argv[i + 1]);
-        } else if (strcmp(argv[i], "-r") == 0) {
-            argumentos.relaciones = argv[i + 1];
-        } else if (strcmp(argv[i], "-m") == 0) {
-            argumentos.modo = argv[i + 1][0];
-        } else if (strcmp(argv[i], "-t") == 0) {
-            argumentos.time = atoi(argv[i + 1]);
+    int i; // Variable para iterar
+    for (i = 1; i < argc; i++) { // Iterar por los argumentos
+        if (strcmp(argv[i], "-i") == 0) { // Si el argumento es -i
+            argumentos.id = atoi(argv[i + 1]); // Extraer el id
+        } else if (strcmp(argv[i], "-p") == 0) { // Si el argumento es -p
+            argumentos.pipeNom = argv[i + 1]; // Extraer el pipeNom
+        } else if (strcmp(argv[i], "-n") == 0) { // Si el argumento es -n
+            argumentos.num = atoi(argv[i + 1]); // Extraer el num
+        } else if (strcmp(argv[i], "-r") == 0) { // Si el argumento es -r
+            argumentos.relaciones = argv[i + 1]; // Extraer el relaciones
+        } else if (strcmp(argv[i], "-m") == 0) { // Si el argumento es -m
+            argumentos.modo = argv[i + 1][0]; // Extraer el modo
+        } else if (strcmp(argv[i], "-t") == 0) { // Si el argumento es -t
+            argumentos.time = atoi(argv[i + 1]); // Extraer el time
         }
     }
 
-    return argumentos;
+    return argumentos; // Retornar los argumentos
 }
 
 
