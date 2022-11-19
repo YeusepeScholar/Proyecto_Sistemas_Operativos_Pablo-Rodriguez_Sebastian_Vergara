@@ -10,7 +10,8 @@
 // Tipo de dato para el identificador de un cliente
 struct cliente {
     int id; ///< Identificador del cliente
-    char* pipeLectura, *pipeEscritura; ///< Pipe por el cual se va a comunicar con el cliente
+    int pipeLectura, *pipeEscritura; ///< Pipe por el cual se va a comunicar con el cliente
+    int numTweets; ///< Numero de tweets que ha enviado el cliente
     bool conectado; ///< Indica si el cliente esta conectado
     // Arreglo de clientes a los que esta suscrito
     bool *suscripciones; ///< Arreglo de suscripciones

@@ -56,6 +56,7 @@ int pipeNom; ///< Pipe nominal para lo que le entra al gestor
 int usuariosConectados = 0; ///< Numero de usuarios conectados
 int tweetsEnviados = 0; ///< Numero de tweets enviados
 int tweetsRecibidos = 0; ///< Numero de tweets recibidos
+
 /// @brief Funcion para imprimir estadisticas
 void *imprimirEstadisticas(void *arg){
     while(true){ // Imprimir estadisticas cada time segundos
@@ -68,6 +69,16 @@ void *imprimirEstadisticas(void *arg){
 }
 
 
+void imprimirRelaciones() {
+    /*printf("Relaciones cargadas\n");
+    for (int i = 0; i < args.num; i++){ // Recorrer usuarios
+        printf("Usuario %d: ", i); // Imprimir usuario
+        for (int j = 0; j < args.num; j++){ // Recorrer usuarios
+            printf("%d ", clientes[i].suscripciones[j]); // Imprimir suscripcion
+        }
+        printf("\n"); // Salto de linea
+    }*/
+}
 
 /// @brief Funcion para cargar las relaciones de un archivo
 void *cargarRelaciones(void *arg){
@@ -79,8 +90,12 @@ void *cargarRelaciones(void *arg){
     ssize_t read; ///< Tamaño de la linea leida
 
     fp = fopen(args.relaciones, "r"); // Abrir archivo de relaciones
-    if (fp == NULL){ // Si no se pudo abrir el archivo
-        printf("Error al abrir el archivo de relaciones %s \n", args.relaciones);
+    // Si no existe el archivo, crear uno nuevo
+    if (fp == NULL){
+        printf("No existe el archivo de relaciones, creando uno nuevo\n");
+        fp = fopen(args.relaciones, "w");
+        fclose(fp);
+        fp = fopen(args.relaciones, "r");
     }
     int i = 0; // Contador de lineas
     while ((read = getline(&line, &len, fp)) != -1) { // Leer linea por linea
@@ -106,11 +121,13 @@ void *cargarRelaciones(void *arg){
         }
         i++; // Incrementar contador de lineas
     }
+    imprimirRelaciones();
 
     return NULL; // Retornar
 }
 
 /// @brief Funcion para atención de solicitudes de los procesos Cliente
+/// @param arg Argumentos de la consola
 void *atenderSolicitudes(void *arg){ // Atender solicitudes de los procesos Cliente
     printf("Atendiendo solicitudes\n");
 
@@ -125,7 +142,6 @@ void *atenderSolicitudes(void *arg){ // Atender solicitudes de los procesos Clie
     printf("Pipe: %s\n", args.pipeNom);
 
     // Leer el pipe
-
     while (true) { // Mientras se pueda leer del pipe
         char buffer[100]; ///< Buffer para almacenar lo que se lee del pipe
         int n = read(pipeNom, buffer, 100); ///< Numero de bytes leidos
@@ -146,10 +162,340 @@ void *atenderSolicitudes(void *arg){ // Atender solicitudes de los procesos Clie
                     // Incrementar el numero de usuarios conectados
                     usuariosConectados++;
                     printf("Usuario %d conectado\n", id);
+                    // Crear el pipe para el id
+                    char pipeCliente[100]; // Pipe para el id
+                    // El formato del pipe es: pipeCliente%d
+                    sprintf(pipeCliente, "pipeCliente%d", id);
+                    printf("Conectando al pipe: %s\n", pipeCliente);
+                    // Abrir el pipe como escritura
+                    clientes[id].pipeLectura = open(pipeCliente, O_WRONLY);
+                    // Si no se pudo abrir el pipe
+                    if (clientes[id].pipeLectura == -1) {
+                        perror("Error al abrir el pipe");
+                    }
+                    // Enviar mensaje de conexion
+                    char mensaje[100]; // Mensaje a enviar
+                    // Mandar mensaje de conexion
+                    sprintf(mensaje, "Conectado al servidor\n");
+                    // Escribir en el pipe
+                    write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+
+                    // Imprimir el pipe
+                    printf("Conectado al pipe: %s\n", pipeCliente);
+
+                    // Borrar mensaje
+                    memset(mensaje, 0, 100);
+                    // Mandar mensaje de conexion
+                    sprintf(mensaje, "\nTweets Archivados: \n");
+                    // Escribir en el pipe
+                    write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+
+                    // Enviar los tweets a los que el usuario se suscribio
+                    for (int i = 0; i < args.num; i++) { // Para cada usuario
+                        if (clientes[id].suscripciones[i] == 1) { // Si el usuario se suscribio al usuario i
+                            for (int j = 0; j < clientes[i].numTweets; j++) { // Para cada tweet del usuario i
+                                // Enviar el tweet por el pipe
+                                tweetsEnviados++;
+                                write(clientes[id].pipeLectura, clientes[i].tweets[j], strlen(clientes[i].tweets[j]));
+                            }
+                        }
+                    }
+
+                    // Borrar mensaje
+                    memset(mensaje, 0, 100);
+                    // Mandar mensaje de conexion
+                    sprintf(mensaje, "\nGestor listo para recibir comandos. \n");
+                    // Escribir en el pipe
+                    write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                } else {
+                    // Enviar mensaje de conexion
+                    char mensaje[100]; // Mensaje a enviar
+                    // Mandar mensaje de conexion
+                    sprintf(mensaje, "ERROR: Otra conexion de usuario\n");
+                    // Escribir en el pipe
+                    write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                }
+            } else {
+                // Enviar mensaje de conexion
+                char mensaje[100]; // Mensaje a enviar
+                // Mandar mensaje de conexion
+                sprintf(mensaje, "ERROR: El ID no esta en el rango\n");
+                // Escribir en el pipe
+                write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+            }
+        }
+            // Operaciones
+            // f: follow
+            // u: unfollow
+            // t: tweet
+            // r: recuperar tweets
+            // d: desconectar
+            // a: ayuda
+            // s: salir
+            // Formato de los mensajes que se reciben por el pipe
+            // operacion ID Mensaje
+            // ID: identificador del cliente
+            // operacion: operacion que se desea realizar
+            // mensaje: mensaje que se desea enviar
+            // Ejemplo: t 1 Hola mundo
+            // Ejemplo: f 1 2
+            // Ejemplo: u 1 2
+            // Ejemplo: r 1
+            // Ejemplo: d
+            // Ejemplo: a f
+
+            // Si el primer caracter es f
+        else if (buffer[0] == 'f') { // Si el primer caracter es f
+            printf("Operacion: follow\n");
+            printf("Cantidad maxima de usuarios conectados: %d\n", args.num);
+            // Extraer el id
+            int id = atoi(&buffer[2]);
+            // Si el id esta en el rango
+            if (id >= 0 && id < args.num) {
+                // Si el id esta conectado
+                if (clientes[id].conectado == true) {
+                    // Extraer el id del usuario a seguir
+                    int idSeguir = atoi(&buffer[4]);
+                    // Si el id del usuario a seguir esta en el rango
+                    if (idSeguir >= 0 && idSeguir < args.num) {
+                        // Si el id del usuario a seguir no es el mismo que el id
+                        if (idSeguir != id) {
+                            printf("Usuario %d sigue a %d\n", id, idSeguir);
+                            // Si el id no sigue al id del usuario a seguir
+                            if (clientes[id].suscripciones[idSeguir] == 0) {
+                                imprimirRelaciones();
+                                // Seguir al usuario
+                                clientes[id].suscripciones[idSeguir] = 1;
+                                // Incrementar el numero de suscripciones del id
+                                clientes[id].numSuscripciones++;
+                                imprimirRelaciones();
+                                // Enviar mensaje de confirmacion
+                                char mensaje[100]; // Mensaje a enviar
+                                sprintf(mensaje, "Seguimiento exitoso");
+                                printf("Enviando mensaje: %s\n", mensaje);
+                                // Escribir en el pipe
+                                write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                            } else { // Si el id ya sigue al id del usuario a seguir
+                                // Enviar mensaje de error
+                                char mensaje[100]; // Mensaje a enviar
+                                sprintf(mensaje, "Error: Ya sigue al usuario");
+                                printf("Enviando mensaje: %s\n", mensaje);
+                                // Escribir en el pipe
+                                write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                            }
+                        } else { // Si el id del usuario a seguir es el mismo que el id
+                            // Enviar mensaje de error
+                            char mensaje[100]; // Mensaje a enviar
+                            sprintf(mensaje, "Error: No se puede seguir a si mismo");
+                            printf("Enviando mensaje: %s\n", mensaje);
+                            // Escribir en el pipe
+                            write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                        }
+                    } else {
+                        // Enviar mensaje de error
+                        char mensaje[100]; // Mensaje a enviar
+                        sprintf(mensaje, "Error: El ID no esta en el rango");
+                        printf("Enviando mensaje: %s\n", mensaje);
+                        // Escribir en el pipe
+                        write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                    }
+                }
+            } else {
+                // Enviar mensaje de error
+                char mensaje[100]; // Mensaje a enviar
+                sprintf(mensaje, "Error: El ID no esta en el rango");
+                printf("Enviando mensaje: %s\n", mensaje);
+                // Escribir en el pipe
+                write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+            }
+        }
+
+        // Si el primer caracter es u
+        else if (buffer[0] == 'u') { // Si el primer caracter es u
+            printf("Operacion: unfollow\n");
+            // Extraer el id
+            int id = atoi(&buffer[2]);
+            // Si el id esta en el rango
+            if (id >= 0 && id < args.num) {
+                // Si el id esta conectado
+                if (clientes[id].conectado == true) {
+                    // Extraer el id del usuario a dejar de seguir
+                    int idSeguir = atoi(&buffer[4]);
+                    // Si el id del usuario a dejar de seguir esta en el rango
+                    if (idSeguir >= 0 && idSeguir < args.num) {
+                        // Si el id del usuario a dejar de seguir no es el mismo que el id
+                        if (idSeguir != id) {
+                            // Si el id sigue al id del usuario a dejar de seguir
+                            if (clientes[id].suscripciones[idSeguir] == 1) {
+                                // Dejar de seguir al usuario
+                                clientes[id].suscripciones[idSeguir] = 0;
+                                // Decrementar el numero de suscripciones del id
+                                clientes[id].numSuscripciones--;
+                                // Enviar mensaje de confirmacion
+                                char mensaje[100]; // Mensaje a enviar
+                                sprintf(mensaje, "Dejado de seguir exitoso");
+                                printf("Enviando mensaje: %s\n", mensaje);
+                                // Escribir en el pipe
+                                write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                            } else { // Si el id no sigue al id del usuario a dejar de seguir
+                                // Enviar mensaje de error
+                                char mensaje[100]; // Mensaje a enviar
+                                sprintf(mensaje, "Error: No sigue al usuario");
+                                printf("Enviando mensaje: %s\n", mensaje);
+                                // Escribir en el pipe
+                                write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                            }
+                        } else { // Si el id del usuario a dejar de seguir es el mismo que el id
+                            // Enviar mensaje de error
+                            char mensaje[100]; // Mensaje a enviar
+                            sprintf(mensaje, "Error: No se puede dejar de seguir a si mismo");
+                            printf("Enviando mensaje: %s\n", mensaje);
+                            // Escribir en el pipe
+                            write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                        }
+                    } else {
+                        // Enviar mensaje de error
+                        char mensaje[100]; // Mensaje a enviar
+                        sprintf(mensaje, "Error: El ID no esta en el rango");
+                        printf("Enviando mensaje: %s\n", mensaje);
+                        // Escribir en el pipe
+                        write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                    }
+                }
+            } else {
+                // Enviar mensaje de error
+                char mensaje[100]; // Mensaje a enviar
+                sprintf(mensaje, "Error: El ID no esta en el rango");
+                printf("Enviando mensaje: %s\n", mensaje);
+                // Escribir en el pipe
+                write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+            }
+        }
+
+            // Si la operacion es t
+        else if (buffer[0] == 't') { // Si la operacion es t
+            printf("Operacion: tweet\n");
+            // Extraer el id
+            int id = atoi(&buffer[2]);
+            // Si el id esta en el rango
+            if (id >= 0 && id < args.num) {
+                // Si el id esta conectado
+                if (clientes[id].conectado == true) {
+                    // Añadir 1 al numero de tweets del gestor
+                    tweetsRecibidos++;
+                    // Guardar el tweet
+                    char tweet[100]; // Tweet a guardar
+                    strcpy(tweet, &buffer[4]);
+                    // Cambiar el tamaño del arreglo
+                    clientes[id].tweets = realloc(clientes[id].tweets, (clientes[id].numTweets + 1) * sizeof(char*));
+                    // Guardar el tweet
+                    clientes[id].tweets[clientes[id].numTweets] = malloc(strlen(tweet) * sizeof(char));
+                    strcpy(clientes[id].tweets[clientes[id].numTweets], tweet);
+                    // Incrementar el numero de tweets del id
+                    clientes[id].numTweets++;
+                    // Enviar mensaje de confirmacion
+                    char mensaje[100]; // Mensaje a enviar
+                    sprintf(mensaje, "Tweet exitoso");
+                    printf("Enviando mensaje: %s\n", mensaje);
+                    // Escribir en el pipe
+                    write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                    // Enviar los mensajes del timeline
+                    if(args.modo == 'a'){
+                        for (int i = 0; i < args.num; i++) { // Para cada id
+                            // Si el id esta conectado
+                            if (clientes[i].conectado == true) {
+                                tweetsEnviados++;
+                                // Si el id sigue al id
+                                if (clientes[i].suscripciones[id] == 1) {
+                                    // Enviar el tweet
+                                    char mensaje[200]; // Mensaje a enviar
+                                    sprintf(mensaje, "Tweet: %s", tweet);
+                                    printf("Enviando mensaje: %s\n", mensaje);
+                                    // Escribir en el pipe
+                                    write(clientes[i].pipeLectura, mensaje, strlen(mensaje));
+                                }
+                            }
+                        }
+                    } else {
+                        printf("Guardando tweet en el buffer\n");
+                    }
                 }
             }
         }
+
+            // Si la operacion es r
+        else if (buffer[0] == 'r') { // Si la operacion es r
+            printf("Operacion: read\n");
+
+            // Extraer el id
+            int id = atoi(&buffer[2]);
+            if(args.modo == 'd'){// Si el id esta en el rango
+                if (id >= 0 && id < args.num) {
+                    // Si el id esta conectado
+                    if (clientes[id].conectado == true) {
+                        printf("Enviando tweets del buffer\n");
+                        // Imprimir cantidad de tweets en el buffer
+                        printf("Cantidad de tweets en el buffer: %d\n", clientes[id].numTweets);
+                        // Buscar tweets de los usuarios que sigue
+                        for (int i = 0; i < args.num; i++) { // Para cada id
+                            // Si el id sigue al id
+                            if (clientes[id].suscripciones[i] == 1) {
+                                // Imprimir cantidad de tweets del id
+                                printf("Cantidad de tweets del usuario %d: %d\n", i, clientes[i].numTweets);
+                                // Enviar los tweets del id
+                                for (int j = 0; j < clientes[i].numTweets; j++) { // Para cada tweet
+                                    tweetsEnviados++;
+                                    // Enviar el tweet
+                                    char mensaje[200]; // Mensaje a enviar
+                                    sprintf(mensaje, "Tweet: %s", clientes[i].tweets[j]);
+                                    printf("Enviando mensaje: %s\n", mensaje);
+                                    // Escribir en el pipe
+                                    write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                                }
+                            }
+                        }
+                    }
+                }
+            } else
+            {
+                char mensaje[100]; // Mensaje a enviar
+                sprintf(mensaje, "Error: No se puede leer el timeline en modo a");
+                printf("Enviando mensaje: %s\n", mensaje);
+                // Escribir en el pipe
+                write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+            }
+
+        }
+
+            // Si la operacion es d
+        else if (buffer[0] == 'd') { // Si la operacion es d
+            printf("Operacion: disconnect\n");
+            // Extraer el id
+            int id = atoi(&buffer[2]);
+            // Si el id esta en el rango
+            if (id >= 0 && id < args.num) {
+                // Si el id esta conectado
+                if (clientes[id].conectado == true) {
+                    // Desconectar el id
+                    clientes[id].conectado = false;
+                    // Enviar mensaje de confirmacion
+                    char mensaje[100]; // Mensaje a enviar
+                    sprintf(mensaje, "Desconexion exitosa");
+                    printf("Enviando mensaje: %s\n", mensaje);
+                    // Escribir en el pipe
+                    write(clientes[id].pipeLectura, mensaje, strlen(mensaje));
+                }
+            }
+        }
+
+        else if(n != 0){
+            // Imprimir el mensaje
+            printf("Mensaje: %s\n", buffer);
+        }
+
+
         // Borra el buffer
+        memset(buffer, 0, 100);
     }
 }
 
@@ -161,6 +507,14 @@ int main(int argc, char *argv[]) {
     // Extraer los datos de la consola¿
     args = extraerDatosConsola(argc, argv);
 
+    // Manejo de errores
+    // Si hace falta las relaciones
+    if (args.relaciones == NULL) {
+        printf("Error: Falta el archivo de relaciones\n");
+        exit(1);
+    }
+
+
     // Todos los clientes tienen id -1
     clientes = malloc(sizeof(struct cliente) * args.num);
     for (int i = 0; i < args.num; ++i) { // Para cada cliente
@@ -171,18 +525,6 @@ int main(int argc, char *argv[]) {
 
     // Borrar el contenido basura que pueda haber en el pipe
     remove(args.pipeNom);
-    for (int i = 0; i < args.num; ++i) { // Para cada cliente
-        char pipeLectura[100]; ///< Pipe de lectura
-        char pipeEscritura[100]; ///< Pipe de escritura
-        sprintf(pipeLectura, "pipeLectura%d", i); // Crear el nombre del pipe de lectura
-        sprintf(pipeEscritura, "pipeEscritura%d", i); // Crear el nombre del pipe de escritura
-        remove(pipeLectura); // Borrar el contenido basura que pueda haber en el pipe de lectura
-        remove(pipeEscritura); // Borrar el contenido basura que pueda haber en el pipe de escritura
-        unlink(pipeLectura); // Borrar el pipe de lectura
-        unlink(pipeEscritura); // Borrar el pipe de escritura
-        clientes[i].pipeLectura = pipeLectura; // Guardar el nombre del pipe de lectura
-        clientes[i].pipeEscritura = pipeEscritura; // Guardar el nombre del pipe de escritura
-    }
 
     // Crear el primer pipe nominal de nombre args.pipeNom y abrirlo en modo escritura. Se usara para asignar un identificador y un pipe a cada usuario que se conecte al sistema.
     unlink(args.pipeNom); // Eliminar el pipe si existe

@@ -51,10 +51,10 @@ struct argumentos extraerDatosConsola(int argc, char *argv[])
     struct argumentos argumentos; ///< Estructura con los datos extraidos
     argumentos.id = 0; // Inicializar id en 0
     argumentos.pipeNom = NULL; // Inicializar pipeNom en NULL
-    argumentos.num = 0; // Inicializar num en 0
+    argumentos.num = 10; // Inicializar num en 10
     argumentos.relaciones = NULL; // Inicializar relaciones en NULL
-    argumentos.modo = ' '; // Inicializar modo en ' '
-    argumentos.time = 0; // Inicializar time en 0
+    argumentos.modo = 'a'; // Inicializar modo en 'a'
+    argumentos.time = 10; // Inicializar time en 10
 
     int i; // Variable para iterar
     for (i = 1; i < argc; i++) { // Iterar por los argumentos
@@ -71,6 +71,12 @@ struct argumentos extraerDatosConsola(int argc, char *argv[])
         } else if (strcmp(argv[i], "-t") == 0) { // Si el argumento es -t
             argumentos.time = atoi(argv[i + 1]); // Extraer el time
         }
+    }
+
+    // Si falta el pipeNom
+    if (argumentos.pipeNom == NULL) {
+        printf("Error de argumentos: falta el pipeNom");
+        exit(1);
     }
 
     return argumentos; // Retornar los argumentos
